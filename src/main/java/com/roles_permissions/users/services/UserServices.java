@@ -6,10 +6,10 @@ import com.roles_permissions.users.dtos.RegisterUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserRolesRequest;
 import com.roles_permissions.users.entities.User;
+import com.roles_permissions.users.enums.Permission;
 import com.roles_permissions.users.enums.Role;
 import com.roles_permissions.users.exceptions.UserNotFoundException;
 import com.roles_permissions.users.mappers.UserMapper;
-import com.roles_permissions.users.repositories.PermissionRepository;
 import com.roles_permissions.users.repositories.RoleRepository;
 import com.roles_permissions.users.repositories.UserRepository;
 import jakarta.transaction.Transactional;
@@ -29,15 +29,31 @@ public class UserServices {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final RoleRepository roleRepository;
-  private final PermissionRepository permissionRepository;
 
-  public List<User> findAll(String sortBy) {
+  public List<User> findAll(String sortBy, String authHeader) {
+    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    requirePermission(currentUser, Permission.USER_READ_All);
+
     if (!Set.of("name", "email" ).contains(sortBy)) sortBy = "name";
     return userRepository.findAll(Sort.by(sortBy));
   }
 
-  public User findById(long userId) {
+  public User findById(long userId, String authHeader) {
+    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    Permission requiredPermission = currentUser.getId() == userId
+      ? Permission.USER_READ_SINGLE_OWN
+      : Permission.USER_READ_SINGLE_OTHER;
+    requirePermission(currentUser, requiredPermission);
+
     return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+  }
+
+  public Optional<User> getById(Long id) {
+    return userRepository.findById(id);
+  }
+
+  public Optional<User> getByEmail(String email) {
+    return userRepository.findByEmail(email);
   }
 
   @Transactional
@@ -54,19 +70,56 @@ public class UserServices {
     return userRepository.save(user);
   }
 
-  public User updateRoles(Long userId, UpdateUserRolesRequest request, String authHeader) {
-    String jwtToken = authHeader.replace("Bearer ", "");
-    Set<Role> currentUserRoles = jwtService.parseToken(jwtToken).getUserRoles();
+  public User update(Long userId, UpdateUserRequest request, String authHeader) {
+    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    requirePermission(currentUser, Permission.USER_UPDATE);
+
     User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
-    var superAdminRole = getRoleByName(Role.SUPER_ADMIN);
-    if (savedUser.hasRole(superAdminRole) && !currentUserRoles.contains(Role.SUPER_ADMIN)) {
-      throw new AccessDeniedException("Only a super admin can update another super admin's roles" );
-    }
+    userMapper.updateEntity(request, savedUser);
+    return userRepository.save(savedUser);
+  }
+
+  public User updateRoles(Long userId, UpdateUserRolesRequest request, String authHeader) {
+    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    requirePermission(currentUser, Permission.USER_UPDATE);
+
+    User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+    validateAccess(existingUser, currentUser);
 
     if (request.getRoles() == null || request.getRoles().isEmpty()) {
       throw new IllegalArgumentException("At least one role is required" );
     }
 
+    Set<com.roles_permissions.users.entities.Role> roles = validateRoles(request);
+
+    existingUser.addRoles(roles);
+    return userRepository.save(existingUser);
+  }
+
+  public void delete(Long userId, String authHeader) {
+    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    requirePermission(currentUser, Permission.USER_DELETE);
+
+    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+    userRepository.delete(savedUser);
+  }
+
+  public Boolean changePassword(Long userId, ChangePasswordRequest request, String authHeader) {
+    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    if (!currentUser.getId().equals(userId)) throw new AccessDeniedException("You are not allow to do this operation");
+
+    User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User Not found"));
+    if (!existingUser.getPassword().equals(request.getOldPassword())) return false;
+    existingUser.setPassword(request.getNewPassword());
+    userRepository.save(existingUser);
+    return true;
+  }
+
+  private com.roles_permissions.users.entities.Role getRoleByName(Role role) {
+    return roleRepository.findByName(role.name()).orElseThrow(() -> new  RuntimeException("Role not found"));
+  }
+
+  private Set<com.roles_permissions.users.entities.Role> validateRoles(UpdateUserRolesRequest request) {
     Set<com.roles_permissions.users.entities.Role> roles = new HashSet<>();
     List<String> invalidRoles = new ArrayList<>();
     for (String roleName : request.getRoles()) {
@@ -79,43 +132,31 @@ public class UserServices {
     if (!invalidRoles.isEmpty()) {
       throw new IllegalArgumentException("Invalid role(s): " + String.join(", ", invalidRoles));
     }
-
-    savedUser.addRoles(roles);
-    return userRepository.save(savedUser);
+    return roles;
   }
 
-  public User update(Long userId, UpdateUserRequest request) {
-    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
-    userMapper.updateEntity(request, savedUser);
-    return userRepository.save(savedUser);
+  private User getCurrentUserWithAuthHeader(String authHeader) {
+    String jwtToken = authHeader.replace("Bearer ", "");
+    Long currentUserId = jwtService.parseToken(jwtToken).getUserId();
+    return userRepository.findById(currentUserId)
+      .orElseThrow(() -> new UserNotFoundException("User not found" ));
   }
 
-  public void delete(Long userId) {
-    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
-    userRepository.delete(savedUser);
-  }
-
-  public Boolean changePassword(Long userId, ChangePasswordRequest request) {
-    Optional<User> optionalUser = userRepository.findById(userId);
-    if (optionalUser.isEmpty()) {
-      return false;
+  private void requirePermission(User user, Permission permission) {
+    if (!hasPermission(user, permission)) {
+      throw new AccessDeniedException("You do not have permission to perform this action" );
     }
-    User user = optionalUser.get();
-    if (!user.getPassword().equals(request.getOldPassword())) return false;
-    user.setPassword(request.getNewPassword());
-    userRepository.save(user);
-    return true;
   }
 
-  private com.roles_permissions.users.entities.Role getRoleByName(Role role) {
-    return roleRepository.findByName(role.name()).orElseThrow(() -> new  RuntimeException("Role not found"));
+  private boolean hasPermission(User user, Permission permission) {
+    return user.getPermissions().stream()
+      .anyMatch(p -> p.getName().equals(permission.name()));
   }
 
-  public Optional<User> getByEmail(String email) {
-    return userRepository.findByEmail(email);
-  }
-
-  public Optional<User> getById(Long id) {
-    return userRepository.findById(id);
+  private void validateAccess(User existingUser, User currentUser) {
+    var superAdminRole = getRoleByName(Role.SUPER_ADMIN);
+    if (existingUser.hasRole(superAdminRole) && !currentUser.hasRole(superAdminRole)) {
+      throw new AccessDeniedException("Only a super admin can update another super admin's roles" );
+    }
   }
 }

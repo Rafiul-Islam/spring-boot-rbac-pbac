@@ -35,9 +35,10 @@ public class UserController {
     description = "Retrieve list of users with optional sorting."
   )
   private List<UserDto> getUsers(
-    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy
+    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    List<User> users = userServices.findAll(sortBy);
+    List<User> users = userServices.findAll(sortBy, authHeader);
     return userMapper.toDtoList(users);
   }
 
@@ -47,9 +48,10 @@ public class UserController {
     description = "Fetch a single user by their unique ID."
   )
   private ResponseEntity<UserDto> getUserById(
-    @PathVariable Long userId
+    @PathVariable Long userId,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    User user = userServices.findById(userId);
+    User user = userServices.findById(userId, authHeader);
     UserDto userDto = userMapper.toDto(user);
     return ResponseEntity.ok(userDto);
   }
@@ -81,9 +83,10 @@ public class UserController {
   )
   private ResponseEntity<UserDto> updateUser(
     @PathVariable Long userId,
-    @RequestBody UpdateUserRequest request
+    @RequestBody UpdateUserRequest request,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    User updatedUser = userServices.update(userId, request);
+    User updatedUser = userServices.update(userId, request, authHeader);
     UserDto userDto = userMapper.toDto(updatedUser);
     return ResponseEntity.ok(userDto);
   }
@@ -94,9 +97,10 @@ public class UserController {
     description = "Remove a user from the system by ID."
   )
   private ResponseEntity<Void> deleteUser(
-    @PathVariable Long userId
+    @PathVariable Long userId,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    userServices.delete(userId);
+    userServices.delete(userId, authHeader);
     return ResponseEntity.noContent().build();
   }
 
@@ -122,9 +126,10 @@ public class UserController {
   )
   private ResponseEntity<Void> changePassword(
     @PathVariable Long userId,
-    @RequestBody ChangePasswordRequest request
+    @RequestBody ChangePasswordRequest request,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    Boolean result = userServices.changePassword(userId, request);
+    Boolean result = userServices.changePassword(userId, request, authHeader);
     if (result) return ResponseEntity.ok().build();
     return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
   }
