@@ -34,7 +34,7 @@ public class UserServices {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     authorizationService.requirePermission(currentUser, Permission.USER_READ_All);
 
-    if (!Set.of("name", "email" ).contains(sortBy)) sortBy = "name";
+    if (!Set.of("name", "email").contains(sortBy)) sortBy = "name";
     return userRepository.findAll(Sort.by(sortBy));
   }
 
@@ -45,7 +45,7 @@ public class UserServices {
       : Permission.USER_READ_SINGLE_OTHER;
     authorizationService.requirePermission(currentUser, requiredPermission);
 
-    return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+    return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
   }
 
   public Optional<User> getById(Long id) {
@@ -59,7 +59,7 @@ public class UserServices {
   @Transactional
   public User save(RegisterUserRequest request) {
     userRepository.findByEmail(request.getEmail()).ifPresent((user) -> {
-      throw new RuntimeException("Email is already registered" );
+      throw new RuntimeException("Email is already registered");
     });
     User user = userMapper.toEntity(request);
     user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -74,7 +74,7 @@ public class UserServices {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
 
-    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     userMapper.updateEntity(request, savedUser);
     return userRepository.save(savedUser);
   }
@@ -83,16 +83,20 @@ public class UserServices {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
 
-    User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+    User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     validateAccess(existingUser, currentUser);
 
     if (request.getRoles() == null || request.getRoles().isEmpty()) {
-      throw new IllegalArgumentException("At least one role is required" );
+      throw new IllegalArgumentException("At least one role is required");
     }
 
     Set<com.roles_permissions.users.entities.Role> roles = validateRoles(request);
+    Set<com.roles_permissions.users.entities.Permission> rolePermissions = new HashSet<>();
+
+    roles.forEach(role -> rolePermissions.addAll(role.getPermissions()));
 
     existingUser.addRoles(roles);
+    existingUser.addPermissions(rolePermissions);
     return userRepository.save(existingUser);
   }
 
@@ -100,7 +104,7 @@ public class UserServices {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     authorizationService.requirePermission(currentUser, Permission.USER_DELETE);
 
-    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
+    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     userRepository.delete(savedUser);
   }
 
@@ -116,7 +120,7 @@ public class UserServices {
   }
 
   private com.roles_permissions.users.entities.Role getRoleByName(Role role) {
-    return roleRepository.findByName(role.name()).orElseThrow(() -> new  RuntimeException("Role not found"));
+    return roleRepository.findByName(role.name()).orElseThrow(() -> new RuntimeException("Role not found"));
   }
 
   private Set<com.roles_permissions.users.entities.Role> validateRoles(UpdateUserRolesRequest request) {
@@ -138,7 +142,7 @@ public class UserServices {
   private void validateAccess(User existingUser, User currentUser) {
     var superAdminRole = getRoleByName(Role.SUPER_ADMIN);
     if (existingUser.hasRole(superAdminRole) && !currentUser.hasRole(superAdminRole)) {
-      throw new AccessDeniedException("Only a super admin can update another super admin's roles" );
+      throw new AccessDeniedException("Only a super admin can update another super admin's roles");
     }
   }
 }
