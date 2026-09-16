@@ -1,6 +1,6 @@
 package com.roles_permissions.users.services;
 
-import com.roles_permissions.auth.JwtService;
+import com.roles_permissions.auth.AuthorizationService;
 import com.roles_permissions.users.dtos.ChangePasswordRequest;
 import com.roles_permissions.users.dtos.RegisterUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserRequest;
@@ -27,23 +27,23 @@ public class UserServices {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
-  private final JwtService jwtService;
   private final RoleRepository roleRepository;
+  private final AuthorizationService authorizationService;
 
   public List<User> findAll(String sortBy, String authHeader) {
-    User currentUser = getCurrentUserWithAuthHeader(authHeader);
-    requirePermission(currentUser, Permission.USER_READ_All);
+    User currentUser = authorizationService.getCurrentUser(authHeader);
+    authorizationService.requirePermission(currentUser, Permission.USER_READ_All);
 
     if (!Set.of("name", "email" ).contains(sortBy)) sortBy = "name";
     return userRepository.findAll(Sort.by(sortBy));
   }
 
   public User findById(long userId, String authHeader) {
-    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    User currentUser = authorizationService.getCurrentUser(authHeader);
     Permission requiredPermission = currentUser.getId() == userId
       ? Permission.USER_READ_SINGLE_OWN
       : Permission.USER_READ_SINGLE_OTHER;
-    requirePermission(currentUser, requiredPermission);
+    authorizationService.requirePermission(currentUser, requiredPermission);
 
     return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
   }
@@ -71,8 +71,8 @@ public class UserServices {
   }
 
   public User update(Long userId, UpdateUserRequest request, String authHeader) {
-    User currentUser = getCurrentUserWithAuthHeader(authHeader);
-    requirePermission(currentUser, Permission.USER_UPDATE);
+    User currentUser = authorizationService.getCurrentUser(authHeader);
+    authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
 
     User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
     userMapper.updateEntity(request, savedUser);
@@ -80,8 +80,8 @@ public class UserServices {
   }
 
   public User updateRoles(Long userId, UpdateUserRolesRequest request, String authHeader) {
-    User currentUser = getCurrentUserWithAuthHeader(authHeader);
-    requirePermission(currentUser, Permission.USER_UPDATE);
+    User currentUser = authorizationService.getCurrentUser(authHeader);
+    authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
 
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
     validateAccess(existingUser, currentUser);
@@ -97,15 +97,15 @@ public class UserServices {
   }
 
   public void delete(Long userId, String authHeader) {
-    User currentUser = getCurrentUserWithAuthHeader(authHeader);
-    requirePermission(currentUser, Permission.USER_DELETE);
+    User currentUser = authorizationService.getCurrentUser(authHeader);
+    authorizationService.requirePermission(currentUser, Permission.USER_DELETE);
 
     User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found" ));
     userRepository.delete(savedUser);
   }
 
   public Boolean changePassword(Long userId, ChangePasswordRequest request, String authHeader) {
-    User currentUser = getCurrentUserWithAuthHeader(authHeader);
+    User currentUser = authorizationService.getCurrentUser(authHeader);
     if (!currentUser.getId().equals(userId)) throw new AccessDeniedException("You are not allow to do this operation");
 
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User Not found"));
@@ -133,24 +133,6 @@ public class UserServices {
       throw new IllegalArgumentException("Invalid role(s): " + String.join(", ", invalidRoles));
     }
     return roles;
-  }
-
-  private User getCurrentUserWithAuthHeader(String authHeader) {
-    String jwtToken = authHeader.replace("Bearer ", "");
-    Long currentUserId = jwtService.parseToken(jwtToken).getUserId();
-    return userRepository.findById(currentUserId)
-      .orElseThrow(() -> new UserNotFoundException("User not found" ));
-  }
-
-  private void requirePermission(User user, Permission permission) {
-    if (!hasPermission(user, permission)) {
-      throw new AccessDeniedException("You do not have permission to perform this action" );
-    }
-  }
-
-  private boolean hasPermission(User user, Permission permission) {
-    return user.getPermissions().stream()
-      .anyMatch(p -> p.getName().equals(permission.name()));
   }
 
   private void validateAccess(User existingUser, User currentUser) {

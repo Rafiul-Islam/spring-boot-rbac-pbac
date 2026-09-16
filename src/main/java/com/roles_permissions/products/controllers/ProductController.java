@@ -32,9 +32,10 @@ public class ProductController {
     description = "Retrieve list of products with optional sorting."
   )
   private List<ProductDto> getProducts(
-    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy
+    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    List<Product> products = productServices.findAll(sortBy);
+    List<Product> products = productServices.findAll(sortBy, authHeader);
     return productMapper.toDtoList(products);
   }
 
@@ -44,9 +45,10 @@ public class ProductController {
     description = "Fetch a single product by its unique ID."
   )
   private ResponseEntity<ProductDto> getProductById(
-    @PathVariable(name = "productId") Long productId
+    @PathVariable(name = "productId") Long productId,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    Product product = productServices.findById(productId);
+    Product product = productServices.findById(productId, authHeader);
     ProductDto productDto = productMapper.toDto(product);
     return ResponseEntity.ok(productDto);
   }
@@ -58,9 +60,10 @@ public class ProductController {
   )
   private ResponseEntity<ProductDto> createProduct(
     @Valid @RequestBody CreateProductRequest request,
-    UriComponentsBuilder uriComponentsBuilder
+    UriComponentsBuilder uriComponentsBuilder,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    Product savedProduct = productServices.save(request);
+    Product savedProduct = productServices.save(request, authHeader);
     ProductDto productDto = productMapper.toDto(savedProduct);
 
     URI uri = uriComponentsBuilder
@@ -78,9 +81,10 @@ public class ProductController {
   )
   private ResponseEntity<ProductDto> updateProduct(
     @PathVariable(name = "productId") Long productId,
-    @Valid @RequestBody UpdateProductRequest request
+    @Valid @RequestBody UpdateProductRequest request,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    Product updatedProduct = productServices.update(productId, request);
+    Product updatedProduct = productServices.update(productId, request, authHeader);
     ProductDto productDto = productMapper.toDto(updatedProduct);
     return ResponseEntity.ok(productDto);
   }
@@ -91,9 +95,10 @@ public class ProductController {
     description = "Remove a product from the system by ID."
   )
   private ResponseEntity<Void> deleteProduct(
-    @PathVariable(name = "productId") Long productId
+    @PathVariable(name = "productId") Long productId,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    productServices.delete(productId);
+    productServices.delete(productId, authHeader);
     return ResponseEntity.noContent().build();
   }
 }
