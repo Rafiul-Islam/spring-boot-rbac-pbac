@@ -3,7 +3,8 @@ package com.roles_permissions.users.enums;
 public enum Permission {
   USER_CREATE,
   USER_READ_All,
-  USER_READ_SINGLE,
+  USER_READ_SINGLE_OWN,
+  USER_READ_SINGLE_OTHER,
   USER_UPDATE,
   USER_DELETE,
 

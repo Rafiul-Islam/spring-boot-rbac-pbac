@@ -2,26 +2,27 @@
 -- 1. POPULATE PERMISSIONS
 -- =====================================================
 INSERT INTO permissions (name) VALUES
-                                   ('USER_CREATE'),
-                                   ('USER_READ_All'),
-                                   ('USER_READ_SINGLE'),
-                                   ('USER_UPDATE'),
-                                   ('USER_DELETE'),
-                                   ('PRODUCT_CREATE'),
-                                   ('PRODUCT_READ_All'),
-                                   ('PRODUCT_READ_SINGLE'),
-                                   ('PRODUCT_UPDATE'),
-                                   ('PRODUCT_DELETE');
+('USER_CREATE'),
+('USER_READ_All'),
+('USER_READ_SINGLE_OWN'),
+('USER_READ_SINGLE_OTHER'),
+('USER_UPDATE'),
+('USER_DELETE'),
+('PRODUCT_CREATE'),
+('PRODUCT_READ_All'),
+('PRODUCT_READ_SINGLE'),
+('PRODUCT_UPDATE'),
+('PRODUCT_DELETE');
 
 -- =====================================================
 -- 2. POPULATE ROLES
 -- =====================================================
 INSERT INTO roles (name) VALUES
-                             ('SUPER_ADMIN'),
-                             ('ADMIN'),
-                             ('EDITOR'),
-                             ('MODERATOR'),
-                             ('USER');
+('SUPER_ADMIN'),
+('ADMIN'),
+('EDITOR'),
+('MODERATOR'),
+('USER');
 
 -- =====================================================
 -- 3. POPULATE ROLES_PERMISSIONS
@@ -30,48 +31,51 @@ INSERT INTO roles (name) VALUES
 -- SUPER_ADMIN: Gets ALL permissions
 INSERT IGNORE INTO roles_permissions (role_id, permission_id, isDefaultForRole)
 SELECT r.id, p.id, TRUE
-FROM roles r
-         CROSS JOIN permissions p
+FROM roles r CROSS JOIN permissions p
 WHERE r.name = 'SUPER_ADMIN';
 
 -- ADMIN: User CRUD (no delete) + Full Product CRUD
 INSERT IGNORE INTO roles_permissions (role_id, permission_id, isDefaultForRole)
 SELECT r.id, p.id, TRUE
 FROM roles r
-         JOIN permissions p ON p.name IN (
-                                          'USER_CREATE', 'USER_READ_All', 'USER_READ_SINGLE', 'USER_UPDATE',
-                                          'PRODUCT_CREATE', 'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE', 'PRODUCT_UPDATE', 'PRODUCT_DELETE'
-    )
+JOIN permissions p ON p.name IN (
+'USER_CREATE', 'USER_READ_All', 'USER_READ_SINGLE_OWN', 'USER_READ_SINGLE_OTHER', 'USER_UPDATE',
+'PRODUCT_CREATE', 'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE', 'PRODUCT_UPDATE', 'PRODUCT_DELETE'
+)
 WHERE r.name = 'ADMIN';
 
--- EDITOR: Full Product CRUD + Read single user profile
+-- EDITOR: Full Product CRUD + Read profile permissions
 INSERT IGNORE INTO roles_permissions (role_id, permission_id, isDefaultForRole)
 SELECT r.id, p.id, TRUE
 FROM roles r
-         JOIN permissions p ON p.name IN (
-                                          'PRODUCT_CREATE', 'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE', 'PRODUCT_UPDATE', 'PRODUCT_DELETE',
-                                          'USER_READ_SINGLE'
-    )
+JOIN permissions p ON p.name IN (
+'PRODUCT_CREATE', 'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE', 'PRODUCT_UPDATE', 'PRODUCT_DELETE',
+'USER_READ_SINGLE_OWN', 'USER_READ_SINGLE_OTHER'
+)
 WHERE r.name = 'EDITOR';
 
--- MODERATOR: Read/Update products + Read single user profile
+-- MODERATOR: Read/Update products + Read profile permissions
 INSERT IGNORE INTO roles_permissions (role_id, permission_id, isDefaultForRole)
 SELECT r.id, p.id, TRUE
 FROM roles r
-         JOIN permissions p ON p.name IN (
-                                          'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE', 'PRODUCT_UPDATE',
-                                          'USER_READ_SINGLE'
-    )
+JOIN permissions p ON p.name IN (
+'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE', 'PRODUCT_UPDATE',
+'USER_READ_SINGLE_OWN', 'USER_READ_SINGLE_OTHER'
+)
 WHERE r.name = 'MODERATOR';
 
--- USER: Read products + Read single user profile
+-- USER: Read products + Read single user profiles (USER_READ_SINGLE_OTHER set to FALSE)
 INSERT IGNORE INTO roles_permissions (role_id, permission_id, isDefaultForRole)
-SELECT r.id, p.id, TRUE
+SELECT r.id, p.id,
+CASE
+WHEN p.name = 'USER_READ_SINGLE_OTHER' THEN FALSE
+ELSE TRUE
+END
 FROM roles r
-         JOIN permissions p ON p.name IN (
-                                          'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE',
-                                          'USER_READ_SINGLE'
-    )
+JOIN permissions p ON p.name IN (
+'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE',
+'USER_READ_SINGLE_OWN', 'USER_READ_SINGLE_OTHER'
+)
 WHERE r.name = 'USER';
 
 -- =====================================================
@@ -96,8 +100,8 @@ SELECT '321 Oak Avenue', 'Denver', 'CO', '80202', id FROM users WHERE email = 'u
 -- 8. POPULATE PRODUCTS
 -- =====================================================
 INSERT INTO products (name, description, price, quantity) VALUES
-                                                              ('Wireless Mechanical Keyboard', 'RGB backlit mechanical keyboard with tactile switches.', 129.99, 50),
-                                                              ('Ergonomic Mouse', 'Wireless ergonomic mouse with customizable side buttons.', 79.50, 120),
-                                                              ('UltraWide Gaming Monitor', '34-inch curved QHD monitor with 144Hz refresh rate.', 499.00, 15),
-                                                              ('USB-C Docking Station', '11-in-1 multi-port hub supporting dual 4K monitors.', 89.95, 200),
-                                                              ('Noise Cancelling Headphones', 'Over-ear Bluetooth headphones with active noise isolation.', 249.99, 35);
+('Wireless Mechanical Keyboard', 'RGB backlit mechanical keyboard with tactile switches.', 129.99, 50),
+('Ergonomic Mouse', 'Wireless ergonomic mouse with customizable side buttons.', 79.50, 120),
+('UltraWide Gaming Monitor', '34-inch curved QHD monitor with 144Hz refresh rate.', 499.00, 15),
+('USB-C Docking Station', '11-in-1 multi-port hub supporting dual 4K monitors.', 89.95, 200),
+('Noise Cancelling Headphones', 'Over-ear Bluetooth headphones with active noise isolation.', 249.99, 35);
