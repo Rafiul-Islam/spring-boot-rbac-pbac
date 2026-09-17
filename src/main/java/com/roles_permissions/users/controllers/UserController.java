@@ -5,6 +5,7 @@ import com.roles_permissions.users.mappers.UserMapper;
 import com.roles_permissions.users.services.UserServices;
 import com.roles_permissions.users.dtos.ChangePasswordRequest;
 import com.roles_permissions.users.dtos.RegisterUserRequest;
+import com.roles_permissions.users.dtos.UpdateUserPermissionsRequest;
 import com.roles_permissions.users.dtos.UpdateUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserRolesRequest;
 import com.roles_permissions.users.entities.User;
@@ -115,6 +116,21 @@ public class UserController {
     @RequestHeader("Authorization") String authHeader
   ) {
     User updatedUser = userServices.updateRoles(userId, request, authHeader);
+    UserDto userDto = userMapper.toDto(updatedUser);
+    return ResponseEntity.ok(userDto);
+  }
+
+  @PutMapping("/{userId}/permissions")
+  @Operation(
+    summary = "Update user permissions",
+    description = "Assign additional permissions to a user."
+  )
+  private ResponseEntity<UserDto> updateUserPermissions(
+    @PathVariable Long userId,
+    @Valid @RequestBody UpdateUserPermissionsRequest request,
+    @RequestHeader("Authorization") String authHeader
+  ) {
+    User updatedUser = userServices.updatePermissions(userId, request, authHeader);
     UserDto userDto = userMapper.toDto(updatedUser);
     return ResponseEntity.ok(userDto);
   }

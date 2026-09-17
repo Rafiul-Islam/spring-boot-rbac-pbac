@@ -3,6 +3,7 @@ package com.roles_permissions.users.services;
 import com.roles_permissions.auth.AuthorizationService;
 import com.roles_permissions.users.dtos.ChangePasswordRequest;
 import com.roles_permissions.users.dtos.RegisterUserRequest;
+import com.roles_permissions.users.dtos.UpdateUserPermissionsRequest;
 import com.roles_permissions.users.dtos.UpdateUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserRolesRequest;
 import com.roles_permissions.users.entities.User;
@@ -10,6 +11,7 @@ import com.roles_permissions.users.enums.Permission;
 import com.roles_permissions.users.enums.Role;
 import com.roles_permissions.users.exceptions.UserNotFoundException;
 import com.roles_permissions.users.mappers.UserMapper;
+import com.roles_permissions.users.repositories.PermissionRepository;
 import com.roles_permissions.users.repositories.RoleRepository;
 import com.roles_permissions.users.repositories.UserRepository;
 import jakarta.transaction.Transactional;
@@ -28,6 +30,7 @@ public class UserServices {
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final RoleRepository roleRepository;
+  private final PermissionRepository permissionRepository;
   private final AuthorizationService authorizationService;
 
   public List<User> findAll(String sortBy, String authHeader) {
@@ -100,6 +103,22 @@ public class UserServices {
     return userRepository.save(existingUser);
   }
 
+  public User updatePermissions(Long userId, UpdateUserPermissionsRequest request, String authHeader) {
+    User currentUser = authorizationService.getCurrentUser(authHeader);
+    authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
+
+    User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
+    validateAccess(existingUser, currentUser);
+
+    if (request.getPermissions() == null || request.getPermissions().isEmpty()) {
+      throw new IllegalArgumentException("At least one permission is required");
+    }
+
+    Set<com.roles_permissions.users.entities.Permission> permissions = validatePermissions(request);
+    existingUser.addPermissions(permissions);
+    return userRepository.save(existingUser);
+  }
+
   public void delete(Long userId, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     authorizationService.requirePermission(currentUser, Permission.USER_DELETE);
@@ -121,6 +140,26 @@ public class UserServices {
 
   private com.roles_permissions.users.entities.Role getRoleByName(Role role) {
     return roleRepository.findByName(role.name()).orElseThrow(() -> new RuntimeException("Role not found"));
+  }
+
+  private com.roles_permissions.users.entities.Permission getPermissionByName(Permission permission) {
+    return permissionRepository.findByName(permission.name()).orElseThrow(() -> new RuntimeException("Permission not found"));
+  }
+
+  private Set<com.roles_permissions.users.entities.Permission> validatePermissions(UpdateUserPermissionsRequest request) {
+    Set<com.roles_permissions.users.entities.Permission> permissions = new HashSet<>();
+    List<String> invalidPermissions = new ArrayList<>();
+    for (String permissionName : request.getPermissions()) {
+      try {
+        permissions.add(getPermissionByName(Permission.valueOf(permissionName)));
+      } catch (IllegalArgumentException e) {
+        invalidPermissions.add(permissionName);
+      }
+    }
+    if (!invalidPermissions.isEmpty()) {
+      throw new IllegalArgumentException("Invalid permission(s): " + String.join(", ", invalidPermissions));
+    }
+    return permissions;
   }
 
   private Set<com.roles_permissions.users.entities.Role> validateRoles(UpdateUserRolesRequest request) {
