@@ -36,6 +36,13 @@ public class Jwt {
     return roleNames.stream().map(Role::valueOf).collect(Collectors.toSet());
   }
 
+  @SuppressWarnings("unchecked")
+  public Set<String> getUserPermissions() {
+    List<String> permissionNames = claims.get("permissions", List.class);
+    if (permissionNames == null) return Set.of();
+    return Set.copyOf(permissionNames);
+  }
+
   public String getJti() {
     return claims.getId();
   }

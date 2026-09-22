@@ -50,6 +50,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
       .collect(Collectors.toList());
 
+    var permissionAuthorities = jwt.getUserPermissions().stream()
+      .map(SimpleGrantedAuthority::new)
+      .toList();
+
+    authorities.addAll(permissionAuthorities);
+
     var authentication = new UsernamePasswordAuthenticationToken(
       userId,
       null,

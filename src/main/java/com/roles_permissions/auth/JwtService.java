@@ -1,5 +1,6 @@
 package com.roles_permissions.auth;
 
+import com.roles_permissions.users.entities.Permission;
 import com.roles_permissions.users.entities.Role;
 import com.roles_permissions.users.entities.User;
 import io.jsonwebtoken.Claims;
@@ -33,12 +34,17 @@ public class JwtService {
       .map(Role::getName)
       .collect(Collectors.toList());
 
+    List<String> permissions = user.getRoles().stream()
+      .flatMap(role -> role.getPermissions().stream().map(Permission::getName))
+      .toList();
+
     var claims = Jwts.claims()
       .setId(tokenId)
       .setSubject(String.valueOf(user.getId()))
       .add("name", String.valueOf(user.getName()))
       .add("email", user.getEmail())
       .add("roles", roles)
+      .add("permissions", permissions)
       .setIssuedAt(new Date())
       .setExpiration(new Date(System.currentTimeMillis() + 1000 * TokenExpirationInSeconds))
       .build();

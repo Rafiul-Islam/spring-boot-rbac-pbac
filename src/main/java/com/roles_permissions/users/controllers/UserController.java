@@ -36,10 +36,9 @@ public class UserController {
     description = "Retrieve list of users with optional sorting."
   )
   private List<UserDto> getUsers(
-    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy,
-    @RequestHeader("Authorization") String authHeader
+    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy
   ) {
-    List<User> users = userServices.findAll(sortBy, authHeader);
+    List<User> users = userServices.findAll(sortBy);
     return userMapper.toDtoList(users);
   }
 
@@ -84,10 +83,9 @@ public class UserController {
   )
   private ResponseEntity<UserDto> updateUser(
     @PathVariable Long userId,
-    @RequestBody UpdateUserRequest request,
-    @RequestHeader("Authorization") String authHeader
+    @RequestBody UpdateUserRequest request
   ) {
-    User updatedUser = userServices.update(userId, request, authHeader);
+    User updatedUser = userServices.update(userId, request);
     UserDto userDto = userMapper.toDto(updatedUser);
     return ResponseEntity.ok(userDto);
   }
@@ -98,10 +96,9 @@ public class UserController {
     description = "Remove a user from the system by ID."
   )
   private ResponseEntity<Void> deleteUser(
-    @PathVariable Long userId,
-    @RequestHeader("Authorization") String authHeader
+    @PathVariable Long userId
   ) {
-    userServices.delete(userId, authHeader);
+    userServices.delete(userId);
     return ResponseEntity.noContent().build();
   }
 

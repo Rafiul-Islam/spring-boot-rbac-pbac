@@ -33,11 +33,8 @@ public class UserServices {
   private final PermissionRepository permissionRepository;
   private final AuthorizationService authorizationService;
 
-  public List<User> findAll(String sortBy, String authHeader) {
-    User currentUser = authorizationService.getCurrentUser(authHeader);
-    authorizationService.requirePermission(currentUser, Permission.USER_READ_All);
-
-    if (!Set.of("name", "email").contains(sortBy)) sortBy = "name";
+  public List<User> findAll(String sortBy) {
+    if (!Set.of("name", "email").contains(sortBy)) sortBy = "id";
     return userRepository.findAll(Sort.by(sortBy));
   }
 
@@ -73,10 +70,7 @@ public class UserServices {
     return userRepository.save(user);
   }
 
-  public User update(Long userId, UpdateUserRequest request, String authHeader) {
-    User currentUser = authorizationService.getCurrentUser(authHeader);
-    authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
-
+  public User update(Long userId, UpdateUserRequest request) {
     User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     userMapper.updateEntity(request, savedUser);
     return userRepository.save(savedUser);
@@ -84,10 +78,9 @@ public class UserServices {
 
   public User updateRoles(Long userId, UpdateUserRolesRequest request, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
-    authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
 
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
-    validateAccess(existingUser, currentUser);
+    validateAdminLevelAccess(existingUser, currentUser);
 
     if (request.getRoles() == null || request.getRoles().isEmpty()) {
       throw new IllegalArgumentException("At least one role is required");
@@ -105,10 +98,8 @@ public class UserServices {
 
   public User updatePermissions(Long userId, UpdateUserPermissionsRequest request, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
-    authorizationService.requirePermission(currentUser, Permission.USER_UPDATE);
-
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
-    validateAccess(existingUser, currentUser);
+    validateAdminLevelAccess(existingUser, currentUser);
 
     if (request.getPermissions() == null || request.getPermissions().isEmpty()) {
       throw new IllegalArgumentException("At least one permission is required");
@@ -119,10 +110,7 @@ public class UserServices {
     return userRepository.save(existingUser);
   }
 
-  public void delete(Long userId, String authHeader) {
-    User currentUser = authorizationService.getCurrentUser(authHeader);
-    authorizationService.requirePermission(currentUser, Permission.USER_DELETE);
-
+  public void delete(Long userId) {
     User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     userRepository.delete(savedUser);
   }
@@ -178,10 +166,14 @@ public class UserServices {
     return roles;
   }
 
-  private void validateAccess(User existingUser, User currentUser) {
+  private void validateAdminLevelAccess(User existingUser, User currentUser) {
     var superAdminRole = getRoleByName(Role.SUPER_ADMIN);
+    var adminRole = getRoleByName(Role.ADMIN);
     if (existingUser.hasRole(superAdminRole) && !currentUser.hasRole(superAdminRole)) {
       throw new AccessDeniedException("Only a super admin can update another super admin's roles");
+    }
+    if (existingUser.hasRole(adminRole) && !currentUser.hasRole(superAdminRole)) {
+      throw new AccessDeniedException("Only a super admin can update admin's roles");
     }
   }
 }

@@ -20,9 +20,9 @@ public class GlobalExceptionHandler {
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(BadCredentialsException.class)
-  public ResponseEntity<String> handleBadCredentials(BadCredentialsException exception) {
+  public ResponseEntity<ErrorDto> handleBadCredentials(BadCredentialsException exception) {
     log.error("BadCredentialsException: {}", exception.getMessage());
-    return new ResponseEntity<>(exception.getMessage(), HttpStatus.UNAUTHORIZED);
+    return new ResponseEntity<>(new ErrorDto("error", "Invalid email or password"), HttpStatus.BAD_REQUEST);
   }
 
   @ExceptionHandler(AccessDeniedException.class)

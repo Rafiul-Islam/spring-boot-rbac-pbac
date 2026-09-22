@@ -37,7 +37,6 @@ public class User {
     joinColumns = @JoinColumn(name = "user_id"),
     inverseJoinColumns = @JoinColumn(name = "role_id")
   )
-  @Enumerated(EnumType.STRING)
   @Builder.Default
   private Set<Role> roles = new HashSet<>();
 
@@ -47,7 +46,6 @@ public class User {
     joinColumns = @JoinColumn(name = "user_id"),
     inverseJoinColumns = @JoinColumn(name = "permission_id")
   )
-  @Enumerated(EnumType.STRING)
   @Builder.Default
   private Set<Permission> permissions = new HashSet<>();
 
@@ -72,7 +70,7 @@ public class User {
 
   public void addRoles(Set<Role> roles) {
     roles.forEach(r -> {
-      roles.add(r);
+      this.roles.add(r);
       r.getUsers().add(this);
     });
   }

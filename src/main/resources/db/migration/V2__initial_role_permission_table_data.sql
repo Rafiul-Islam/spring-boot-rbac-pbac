@@ -66,15 +66,11 @@ WHERE r.name = 'MODERATOR';
 
 -- USER: Read products + Read single user profiles (USER_READ_SINGLE_OTHER set to FALSE)
 INSERT IGNORE INTO roles_permissions (role_id, permission_id, isDefaultForRole)
-SELECT r.id, p.id,
-CASE
-WHEN p.name = 'USER_READ_SINGLE_OTHER' THEN FALSE
-ELSE TRUE
-END
+SELECT r.id, p.id, TRUE
 FROM roles r
 JOIN permissions p ON p.name IN (
 'PRODUCT_READ_All', 'PRODUCT_READ_SINGLE',
-'USER_READ_SINGLE_OWN', 'USER_READ_SINGLE_OTHER'
+'USER_READ_SINGLE_OWN'
 )
 WHERE r.name = 'USER';
 
