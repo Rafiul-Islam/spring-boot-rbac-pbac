@@ -34,9 +34,9 @@ public class JwtService {
       .map(Role::getName)
       .collect(Collectors.toList());
 
-    List<String> permissions = user.getRoles().stream()
-      .flatMap(role -> role.getPermissions().stream().map(Permission::getName))
-      .toList();
+    List<String> permissions = user.getPermissions().stream()
+      .map(Permission::getName)
+      .collect(Collectors.toList());
 
     var claims = Jwts.claims()
       .setId(tokenId)
