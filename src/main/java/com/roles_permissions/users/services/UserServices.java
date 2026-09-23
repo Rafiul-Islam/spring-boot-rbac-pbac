@@ -33,9 +33,8 @@ public class UserServices {
   private final PermissionRepository permissionRepository;
   private final AuthorizationService authorizationService;
 
-  public List<User> findAll(String sortBy) {
-    if (!Set.of("name", "email").contains(sortBy)) sortBy = "id";
-    return userRepository.findAll(Sort.by(sortBy));
+  public List<User> findAll() {
+    return userRepository.findAllWithRolesAndPermissions();
   }
 
   public User findById(long userId, String authHeader) {

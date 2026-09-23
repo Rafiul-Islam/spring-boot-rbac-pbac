@@ -29,19 +29,14 @@ public class UserDetailsService implements org.springframework.security.core.use
     Stream<SimpleGrantedAuthority> roleAuthorities = existingUser.getRoles().stream()
       .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()));
 
-    // 2. Map Permissions tied directly to the Roles
-    Stream<SimpleGrantedAuthority> rolePermissionAuthorities = existingUser.getRoles().stream()
-      .flatMap(role -> role.getPermissions().stream())
-      .map(permission -> new SimpleGrantedAuthority(permission.getName()));
-
-    // 3. Map Override Permissions tied directly to the User
+    // 2. Map Override Permissions tied directly to the User
     Stream<SimpleGrantedAuthority> directPermissionAuthorities = existingUser.getPermissions().stream()
       .map(permission -> new SimpleGrantedAuthority(permission.getName()));
 
-    // 4. Combine all three streams into a distinct set of GrantedAuthorities
+    // 3. Combine role authorities and direct user permissions into a distinct set of GrantedAuthorities
     Set<GrantedAuthority> authorities = Stream.concat(
         roleAuthorities,
-        Stream.concat(rolePermissionAuthorities, directPermissionAuthorities)
+        directPermissionAuthorities
       )
       .collect(Collectors.toSet()); // .toSet() automatically eliminates duplicate strings
 

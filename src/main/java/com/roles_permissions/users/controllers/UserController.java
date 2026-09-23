@@ -35,10 +35,8 @@ public class UserController {
     summary = "Get all users",
     description = "Retrieve list of users with optional sorting."
   )
-  private List<UserDto> getUsers(
-    @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy
-  ) {
-    List<User> users = userServices.findAll(sortBy);
+  private List<UserDto> getUsers() {
+    List<User> users = userServices.findAll();
     return userMapper.toDtoList(users);
   }
 
