@@ -1,13 +1,10 @@
 package com.roles_permissions.users.controllers;
 
-import com.roles_permissions.users.dtos.UserDto;
+import com.roles_permissions.users.dtos.*;
+import com.roles_permissions.users.entities.Permission;
+import com.roles_permissions.users.entities.Role;
 import com.roles_permissions.users.mappers.UserMapper;
 import com.roles_permissions.users.services.UserServices;
-import com.roles_permissions.users.dtos.ChangePasswordRequest;
-import com.roles_permissions.users.dtos.RegisterUserRequest;
-import com.roles_permissions.users.dtos.UpdateUserPermissionsRequest;
-import com.roles_permissions.users.dtos.UpdateUserRequest;
-import com.roles_permissions.users.dtos.UpdateUserRolesRequest;
 import com.roles_permissions.users.entities.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @RestController
@@ -52,6 +50,32 @@ public class UserController {
     User user = userServices.findById(userId, authHeader);
     UserDto userDto = userMapper.toDto(user);
     return ResponseEntity.ok(userDto);
+  }
+
+  @GetMapping("/{userId}/roles")
+  @Operation(
+    summary = "Get user roles by ID",
+    description = "Fetch a single user roles by their unique ID."
+  )
+  private ResponseEntity<Set<RoleDto>> getUserRolesById(
+    @PathVariable Long userId
+  ) {
+    Set<Role> userRoles = userServices.getUserRoles(userId);
+    Set<RoleDto> roles = userMapper.toRoleDtoList(userRoles);
+    return ResponseEntity.ok(roles);
+  }
+
+  @GetMapping("/{userId}/permissions")
+  @Operation(
+    summary = "Get user permissions by ID",
+    description = "Fetch a single user permissions by their unique ID."
+  )
+  private ResponseEntity<Set<PermissionDto>> getUserPermissionsById(
+    @PathVariable Long userId
+  ) {
+    Set<Permission> userPermissions = userServices.getUserPermissions(userId);
+    Set<PermissionDto> permissions = userMapper.toPermissionDtoList(userPermissions);
+    return ResponseEntity.ok(permissions);
   }
 
   @PostMapping

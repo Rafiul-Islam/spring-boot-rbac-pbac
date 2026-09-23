@@ -1,6 +1,7 @@
 package com.roles_permissions.users.services;
 
 import com.roles_permissions.auth.AuthorizationService;
+import com.roles_permissions.auth.Jwt;
 import com.roles_permissions.users.dtos.ChangePasswordRequest;
 import com.roles_permissions.users.dtos.RegisterUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserPermissionsRequest;
@@ -174,5 +175,15 @@ public class UserServices {
     if (existingUser.hasRole(adminRole) && !currentUser.hasRole(superAdminRole)) {
       throw new AccessDeniedException("Only a super admin can update admin's roles");
     }
+  }
+
+  public Set<com.roles_permissions.users.entities.Role> getUserRoles(Long userId) {
+    User existingUser = getById(userId).orElseThrow(() -> new UserNotFoundException("User Not Found"));
+    return existingUser.getRoles();
+  }
+
+  public Set<com.roles_permissions.users.entities.Permission> getUserPermissions(Long userId) {
+    User existingUser = getById(userId).orElseThrow(() -> new UserNotFoundException("User Not Found"));
+    return existingUser.getPermissions();
   }
 }

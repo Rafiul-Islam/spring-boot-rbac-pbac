@@ -14,7 +14,9 @@ import org.springframework.stereotype.Component;
 public class UserSecurityRules implements SecurityRules {
   private static final String[] CAN_READ_USERS_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name(), Role.MODERATOR.name(), Role.EDITOR.name()};
   private static final String[] CAN_READ_ROLE_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name()};
+  private static final String[] CAN_UPDATE_ROLE_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name()};
   private static final String[] CAN_READ_PERMISSION_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name()};
+  private static final String[] CAN_UPDATE_PERMISSION_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name()};
 
   @Override
   public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry registry) {
@@ -32,8 +34,10 @@ public class UserSecurityRules implements SecurityRules {
         )
       )
       .requestMatchers(HttpMethod.POST, "/users").permitAll()
-      .requestMatchers(HttpMethod.PUT, "/users/*/roles").hasAnyRole(CAN_READ_ROLE_ROLES)
-      .requestMatchers(HttpMethod.PUT, "/users/*/permissions").hasAnyRole(CAN_READ_PERMISSION_ROLES)
+      .requestMatchers(HttpMethod.GET, "/users/*/roles").hasAnyRole(CAN_READ_ROLE_ROLES)
+      .requestMatchers(HttpMethod.GET, "/users/*/permissions").hasAnyRole(CAN_READ_PERMISSION_ROLES)
+      .requestMatchers(HttpMethod.PUT, "/users/*/roles").hasAnyRole(CAN_UPDATE_ROLE_ROLES)
+      .requestMatchers(HttpMethod.PUT, "/users/*/permissions").hasAnyRole(CAN_UPDATE_PERMISSION_ROLES)
       .requestMatchers("/users/**").authenticated();
   }
 }
