@@ -70,10 +70,12 @@ public class UserServices {
     return userRepository.save(user);
   }
 
-  public User update(Long userId, UpdateUserRequest request) {
-    User savedUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
-    userMapper.updateEntity(request, savedUser);
-    return userRepository.save(savedUser);
+  public User update(Long userId, UpdateUserRequest request, String authHeader) {
+    User currentUser = authorizationService.getCurrentUser(authHeader);
+    if (!currentUser.getId().equals(userId)) throw new AccessDeniedException("You are not allow to do this operation");
+    User targetUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
+    userMapper.updateEntity(request, targetUser);
+    return userRepository.save(targetUser);
   }
 
   public User updateRoles(Long userId, UpdateUserRolesRequest request, String authHeader) {

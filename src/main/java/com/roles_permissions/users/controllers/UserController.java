@@ -105,9 +105,10 @@ public class UserController {
   )
   private ResponseEntity<UserDto> updateUser(
     @PathVariable Long userId,
-    @RequestBody UpdateUserRequest request
+    @RequestBody UpdateUserRequest request,
+    @RequestHeader("Authorization") String authHeader
   ) {
-    User updatedUser = userServices.update(userId, request);
+    User updatedUser = userServices.update(userId, request, authHeader);
     UserDto userDto = userMapper.toDto(updatedUser);
     return ResponseEntity.ok(userDto);
   }
