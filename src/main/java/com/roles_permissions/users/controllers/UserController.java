@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -165,8 +164,7 @@ public class UserController {
     @RequestBody ChangePasswordRequest request,
     @RequestHeader("Authorization") String authHeader
   ) {
-    Boolean result = userServices.changePassword(userId, request, authHeader);
-    if (result) return ResponseEntity.ok().build();
-    return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    userServices.changePassword(userId, request, authHeader);
+    return ResponseEntity.ok().build();
   }
 }

@@ -10,6 +10,7 @@ import com.roles_permissions.users.dtos.UpdateUserRolesRequest;
 import com.roles_permissions.users.entities.User;
 import com.roles_permissions.users.enums.Permission;
 import com.roles_permissions.users.enums.Role;
+import com.roles_permissions.users.exceptions.InvalidPasswordException;
 import com.roles_permissions.users.exceptions.UserNotFoundException;
 import com.roles_permissions.users.mappers.UserMapper;
 import com.roles_permissions.users.repositories.PermissionRepository;
@@ -117,15 +118,16 @@ public class UserServices {
     userRepository.delete(savedUser);
   }
 
-  public Boolean changePassword(Long userId, ChangePasswordRequest request, String authHeader) {
+  public void changePassword(Long userId, ChangePasswordRequest request, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     if (!currentUser.getId().equals(userId)) throw new AccessDeniedException("You are not allow to do this operation");
 
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User Not found"));
-    if (!existingUser.getPassword().equals(request.getOldPassword())) return false;
-    existingUser.setPassword(request.getNewPassword());
+    if (!passwordEncoder.matches(request.getOldPassword(), existingUser.getPassword())) {
+      throw new InvalidPasswordException();
+    }
+    existingUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
     userRepository.save(existingUser);
-    return true;
   }
 
   private com.roles_permissions.users.entities.Role getRoleByName(Role role) {

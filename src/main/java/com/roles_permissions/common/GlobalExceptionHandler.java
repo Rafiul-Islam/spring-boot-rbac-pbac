@@ -8,6 +8,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import com.roles_permissions.users.exceptions.InvalidPasswordException;
+import com.roles_permissions.users.exceptions.UserNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +25,18 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorDto> handleBadCredentials(BadCredentialsException exception) {
     log.error("BadCredentialsException: {}", exception.getMessage());
     return new ResponseEntity<>(new ErrorDto("error", "Invalid email or password"), HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(InvalidPasswordException.class)
+  public ResponseEntity<ErrorDto> handleInvalidPassword(InvalidPasswordException exception) {
+    log.error("InvalidPasswordException: {}", exception.getMessage());
+    return new ResponseEntity<>(new ErrorDto("error", exception.getMessage()), HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler(UserNotFoundException.class)
+  public ResponseEntity<ErrorDto> handleUserNotFound(UserNotFoundException exception) {
+    log.error("UserNotFoundException: {}", exception.getMessage());
+    return new ResponseEntity<>(new ErrorDto("error", exception.getMessage()), HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(AccessDeniedException.class)
