@@ -1,15 +1,14 @@
 package com.roles_permissions.users.services;
 
 import com.roles_permissions.auth.AuthorizationService;
-import com.roles_permissions.auth.Jwt;
 import com.roles_permissions.users.dtos.ChangePasswordRequest;
 import com.roles_permissions.users.dtos.RegisterUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserPermissionsRequest;
 import com.roles_permissions.users.dtos.UpdateUserRequest;
 import com.roles_permissions.users.dtos.UpdateUserRolesRequest;
 import com.roles_permissions.users.entities.User;
-import com.roles_permissions.users.enums.Permission;
-import com.roles_permissions.users.enums.Role;
+import com.roles_permissions.users.entities.Permission;
+import com.roles_permissions.users.entities.Role;
 import com.roles_permissions.users.exceptions.InvalidPasswordException;
 import com.roles_permissions.users.exceptions.UserNotFoundException;
 import com.roles_permissions.users.mappers.UserMapper;
@@ -18,12 +17,12 @@ import com.roles_permissions.users.repositories.RoleRepository;
 import com.roles_permissions.users.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,9 +40,9 @@ public class UserServices {
 
   public User findById(long userId, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
-    Permission requiredPermission = currentUser.getId() == userId
-      ? Permission.USER_READ_SINGLE_OWN
-      : Permission.USER_READ_SINGLE_OTHER;
+    com.roles_permissions.users.enums.Permission requiredPermission = currentUser.getId() == userId
+      ? com.roles_permissions.users.enums.Permission.USER_READ_SINGLE_OWN
+      : com.roles_permissions.users.enums.Permission.USER_READ_SINGLE_OTHER;
     authorizationService.requirePermission(currentUser, requiredPermission);
 
     return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -64,7 +63,7 @@ public class UserServices {
     });
     User user = userMapper.toEntity(request);
     user.setPassword(passwordEncoder.encode(user.getPassword()));
-    var userRole = getRoleByName(Role.USER);
+    var userRole = getRoleByName(com.roles_permissions.users.enums.Role.USER);
     var rolePermissions = userRole.getPermissions();
     user.addRole(userRole);
     user.addPermissions(rolePermissions);
@@ -79,37 +78,56 @@ public class UserServices {
     return userRepository.save(targetUser);
   }
 
+  @Transactional
   public User updateRoles(Long userId, UpdateUserRolesRequest request, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
 
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     validateAdminLevelAccess(existingUser, currentUser);
 
-    if (request.getRoles() == null || request.getRoles().isEmpty()) {
-      throw new IllegalArgumentException("At least one role is required");
-    }
+    Set<Role> newRoles = validateRoles(request);
 
-    Set<com.roles_permissions.users.entities.Role> roles = validateRoles(request);
-    Set<com.roles_permissions.users.entities.Permission> rolePermissions = new HashSet<>();
+    Set<Role> addedRoles = new HashSet<>(newRoles);
+    addedRoles.removeAll(existingUser.getRoles());
 
-    roles.forEach(role -> rolePermissions.addAll(role.getPermissions()));
+    Set<Role> removedRoles = new HashSet<>(existingUser.getRoles());
+    removedRoles.removeAll(newRoles);
 
-    existingUser.addRoles(roles);
-    existingUser.addPermissions(rolePermissions);
+    Set<Permission> permissionsToAdd = addedRoles.stream()
+      .flatMap(role -> role.getPermissions().stream())
+      .collect(Collectors.toSet());
+
+    Set<Role> remainingRoles = new HashSet<>(existingUser.getRoles());
+    remainingRoles.retainAll(newRoles);
+
+    Set<Permission> remainingRolePermissions = remainingRoles.stream()
+      .flatMap(role -> role.getPermissions().stream())
+      .collect(Collectors.toSet());
+
+    Set<Permission> permissionsToRemove = removedRoles.stream()
+      .flatMap(role -> role.getPermissions().stream())
+      .filter(p -> !remainingRolePermissions.contains(p))
+      .collect(Collectors.toSet());
+
+    existingUser.getRoles().retainAll(newRoles);
+    existingUser.getRoles().addAll(newRoles);
+
+    existingUser.getPermissions().removeAll(permissionsToRemove);
+    existingUser.getPermissions().addAll(permissionsToAdd);
+
     return userRepository.save(existingUser);
   }
 
+  @Transactional
   public User updatePermissions(Long userId, UpdateUserPermissionsRequest request, String authHeader) {
     User currentUser = authorizationService.getCurrentUser(authHeader);
     User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
     validateAdminLevelAccess(existingUser, currentUser);
 
-    if (request.getPermissions() == null || request.getPermissions().isEmpty()) {
-      throw new IllegalArgumentException("At least one permission is required");
-    }
+    Set<Permission> permissions = validatePermissions(request);
+    existingUser.getPermissions().retainAll(permissions);
+    existingUser.getPermissions().addAll(permissions);
 
-    Set<com.roles_permissions.users.entities.Permission> permissions = validatePermissions(request);
-    existingUser.addPermissions(permissions);
     return userRepository.save(existingUser);
   }
 
@@ -130,20 +148,20 @@ public class UserServices {
     userRepository.save(existingUser);
   }
 
-  private com.roles_permissions.users.entities.Role getRoleByName(Role role) {
+  private Role getRoleByName(com.roles_permissions.users.enums.Role role) {
     return roleRepository.findByName(role.name()).orElseThrow(() -> new RuntimeException("Role not found"));
   }
 
-  private com.roles_permissions.users.entities.Permission getPermissionByName(Permission permission) {
+  private Permission getPermissionByName(com.roles_permissions.users.enums.Permission permission) {
     return permissionRepository.findByName(permission.name()).orElseThrow(() -> new RuntimeException("Permission not found"));
   }
 
-  private Set<com.roles_permissions.users.entities.Permission> validatePermissions(UpdateUserPermissionsRequest request) {
-    Set<com.roles_permissions.users.entities.Permission> permissions = new HashSet<>();
+  private Set<Permission> validatePermissions(UpdateUserPermissionsRequest request) {
+    Set<Permission> permissions = new HashSet<>();
     List<String> invalidPermissions = new ArrayList<>();
     for (String permissionName : request.getPermissions()) {
       try {
-        permissions.add(getPermissionByName(Permission.valueOf(permissionName)));
+        permissions.add(getPermissionByName(com.roles_permissions.users.enums.Permission.valueOf(permissionName)));
       } catch (IllegalArgumentException e) {
         invalidPermissions.add(permissionName);
       }
@@ -154,12 +172,12 @@ public class UserServices {
     return permissions;
   }
 
-  private Set<com.roles_permissions.users.entities.Role> validateRoles(UpdateUserRolesRequest request) {
-    Set<com.roles_permissions.users.entities.Role> roles = new HashSet<>();
+  private Set<Role> validateRoles(UpdateUserRolesRequest request) {
+    Set<Role> roles = new HashSet<>();
     List<String> invalidRoles = new ArrayList<>();
     for (String roleName : request.getRoles()) {
       try {
-        roles.add(getRoleByName(Role.valueOf(roleName)));
+        roles.add(getRoleByName(com.roles_permissions.users.enums.Role.valueOf(roleName)));
       } catch (IllegalArgumentException e) {
         invalidRoles.add(roleName);
       }
@@ -171,8 +189,8 @@ public class UserServices {
   }
 
   private void validateAdminLevelAccess(User existingUser, User currentUser) {
-    var superAdminRole = getRoleByName(Role.SUPER_ADMIN);
-    var adminRole = getRoleByName(Role.ADMIN);
+    var superAdminRole = getRoleByName(com.roles_permissions.users.enums.Role.SUPER_ADMIN);
+    var adminRole = getRoleByName(com.roles_permissions.users.enums.Role.ADMIN);
     if (existingUser.hasRole(superAdminRole) && !currentUser.hasRole(superAdminRole)) {
       throw new AccessDeniedException("Only a super admin can update another super admin's roles");
     }
@@ -181,12 +199,12 @@ public class UserServices {
     }
   }
 
-  public Set<com.roles_permissions.users.entities.Role> getUserRoles(Long userId) {
+  public Set<Role> getUserRoles(Long userId) {
     User existingUser = getById(userId).orElseThrow(() -> new UserNotFoundException("User Not Found"));
     return existingUser.getRoles();
   }
 
-  public Set<com.roles_permissions.users.entities.Permission> getUserPermissions(Long userId) {
+  public Set<Permission> getUserPermissions(Long userId) {
     User existingUser = getById(userId).orElseThrow(() -> new UserNotFoundException("User Not Found"));
     return existingUser.getPermissions();
   }

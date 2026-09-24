@@ -29,4 +29,16 @@ public class Role {
     inverseJoinColumns = @JoinColumn(name = "permission_id")
   )
   private Set<Permission> permissions = new HashSet<>();
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Role role)) return false;
+    return id != null && id.equals(role.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return getClass().hashCode();
+  }
 }

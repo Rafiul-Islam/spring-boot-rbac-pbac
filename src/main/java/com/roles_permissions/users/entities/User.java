@@ -53,40 +53,13 @@ public class User {
   @Builder.Default
   private List<Address> addresses = new ArrayList<>();
 
-  public void addAddress(Address address) {
-    addresses.add(address);
-    address.setUser(this);
-  }
-
-  public void removeAddress(Address address) {
-    addresses.remove(address);
-    address.setUser(null);
-  }
-
   public void addRole(Role role) {
     roles.add(role);
     role.getUsers().add(this);
   }
 
-  public void addRoles(Set<Role> roles) {
-    roles.forEach(r -> {
-      this.roles.add(r);
-      r.getUsers().add(this);
-    });
-  }
-
-  public void removeRole(Role role) {
-    roles.remove(role);
-    role.getUsers().remove(this);
-  }
-
   public boolean hasRole(Role role) {
     return roles.contains(role);
-  }
-
-  public void addPermission(Permission permission) {
-    permissions.add(permission);
-    permission.getUsers().add(this);
   }
 
   public void addPermissions(Set<Permission> permissions) {
@@ -94,15 +67,6 @@ public class User {
       this.permissions.add(p);
       p.getUsers().add(this);
     });
-  }
-
-  public void removePermission(Permission permission) {
-    permissions.remove(permission);
-    permission.getUsers().remove(this);
-  }
-
-  public boolean hasPermission(Permission permission) {
-    return permissions.contains(permission);
   }
 
   @Override

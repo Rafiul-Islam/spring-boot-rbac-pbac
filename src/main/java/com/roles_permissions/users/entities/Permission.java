@@ -25,4 +25,16 @@ public class Permission {
 
   @ManyToMany(mappedBy = "permissions")
   private Set<Role> roles = new HashSet<>();
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof Permission permission)) return false;
+    return id != null && id.equals(permission.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return getClass().hashCode();
+  }
 }
