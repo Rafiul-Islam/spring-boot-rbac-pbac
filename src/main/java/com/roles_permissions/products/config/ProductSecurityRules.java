@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ProductSecurityRules implements SecurityRules {
-  private static final String[] CAN_READ_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name(), Role.MODERATOR.name(), Role.EDITOR.name()};
+  private static final String[] CAN_READ_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name(), Role.MODERATOR.name(), Role.EDITOR.name(), Role.USER.name()};
   private static final String[] CAN_CREATE_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name()};
   private static final String[] CAN_UPDATE_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name(), Role.MODERATOR.name()};
   private static final String[] CAN_DELETE_ROLES = {Role.ADMIN.name(), Role.SUPER_ADMIN.name()};
