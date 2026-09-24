@@ -42,8 +42,8 @@ A robust Spring Boot REST API implementing Role-Based Access Control (RBAC) and 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/roles-permissions-spring-boot.git
-   cd roles-permissions-spring-boot
+   git clone <repository-url>
+   cd roles_permissions
    ```
 
 2. **Configure environment variables**
@@ -58,13 +58,13 @@ A robust Spring Boot REST API implementing Role-Based Access Control (RBAC) and 
    ```
 
 3. **Configure database**
-   Update `src/main/resources/application.yaml` with your MySQL credentials:
+   Update `src/main/resources/application.yaml` with your MySQL credentials if different from defaults:
    ```yaml
    spring:
      datasource:
-       url: jdbc:mysql://localhost:3306/roles_permissions
-       username: your-username
-       password: your-password
+       url: jdbc:mysql://localhost:3306/roles_permissions?createDatabaseIfNotExist=true
+       username: root
+       password: 1234
    ```
 
 4. **Run database migrations**
@@ -82,15 +82,15 @@ A robust Spring Boot REST API implementing Role-Based Access Control (RBAC) and 
    mvn spring-boot:run
    ```
 
-The API will be available at `http://localhost:8081`
+The API will be available at `http://localhost:8081/api`
 
 ## 📚 API Documentation
 
 Once the application is running, access the interactive Swagger documentation:
 
-**Swagger UI**: `http://localhost:8081/swagger-ui.html`
+**Swagger UI**: `http://localhost:8081/api/swagger-ui.html`
 
-**OpenAPI JSON**: `http://localhost:8081/v3/api-docs`
+**OpenAPI JSON**: `http://localhost:8081/api/v3/api-docs`
 
 ## 👥 Roles & Permissions
 
@@ -137,40 +137,40 @@ Once the application is running, access the interactive Swagger documentation:
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | `/auth/login` | Login with email/password | No |
-| POST | `/auth/validate` | Validate access token | No |
-| GET | `/auth/me` | Get current user info | Yes |
-| POST | `/auth/refresh` | Refresh access token | No (cookie) |
-| POST | `/auth/logout` | Logout and invalidate tokens | Yes |
+| POST | `/api/auth/login` | Login with email/password | No |
+| POST | `/api/auth/validate` | Validate access token | No |
+| GET | `/api/auth/me` | Get current user info | Yes |
+| POST | `/api/auth/refresh` | Refresh access token | No (cookie) |
+| POST | `/api/auth/logout` | Logout and invalidate tokens | Yes |
 
 ### Users
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| GET | `/users` | Get all users | Yes |
-| GET | `/users/{id}` | Get user by ID | Yes |
-| POST | `/users` | Register new user | No |
-| PUT | `/users/{id}` | Update user | Yes |
-| DELETE | `/users/{id}` | Delete user | Yes |
-| PUT | `/users/{id}/roles` | Update user roles | Yes |
-| PUT | `/users/{id}/permissions` | Update user permissions | Yes |
-| POST | `/users/{id}/change-password` | Change user password | Yes |
+| GET | `/api/users` | Get all users | Yes |
+| GET | `/api/users/{id}` | Get user by ID | Yes |
+| POST | `/api/users` | Register new user | No |
+| PUT | `/api/users/{id}` | Update user | Yes |
+| DELETE | `/api/users/{id}` | Delete user | Yes |
+| PUT | `/api/users/{id}/roles` | Update user roles | Yes |
+| PUT | `/api/users/{id}/permissions` | Update user permissions | Yes |
+| POST | `/api/users/{id}/change-password` | Change user password | Yes |
 
 ### Products
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| GET | `/products` | Get all products | Yes |
-| GET | `/products/{id}` | Get product by ID | Yes |
-| POST | `/products` | Create product | Yes |
-| PUT | `/products/{id}` | Update product | Yes |
-| DELETE | `/products/{id}` | Delete product | Yes |
+| GET | `/api/products` | Get all products | Yes |
+| GET | `/api/products/{id}` | Get product by ID | Yes |
+| POST | `/api/products` | Create product | Yes |
+| PUT | `/api/products/{id}` | Update product | Yes |
+| DELETE | `/api/products/{id}` | Delete product | Yes |
 
 ### Admin
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| GET | `/admin/greetings` | Admin greeting | Yes |
+| GET | `/api/admin/greetings` | Admin greeting | Yes |
 
 ## 🔐 Default Users
 
@@ -251,14 +251,6 @@ mvn test
 - **Custom Access Denied Handler** - Proper 403 error responses
 - **Security Headers** - X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
 - **CORS Configuration** - Cross-origin resource sharing support
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📄 License
 
